@@ -13,10 +13,13 @@
 # limitations under the License.
 
 import os
+import random
+import unittest
 
 import tensorflow as tf
 from tensorflow import keras
 
+from keras_nlp.tokenizers.word_piece_tokenizer import SUPPORTED_VOCAB
 from keras_nlp.tokenizers.word_piece_tokenizer import WordPieceTokenizer
 
 
@@ -169,6 +172,87 @@ class WordPieceTokenizerTest(tf.test.TestCase):
         tokenizer = WordPieceTokenizer(vocabulary=vocab_path)
         call_output = tokenizer(input_data)
         self.assertAllEqual(call_output, [[1, 2, 3, 4, 5, 6, 7]])
+
+    @unittest.mock.patch("keras_nlp.tokenizers.word_piece_tokenizer.download")
+    def test_from_pretrained(self, download_mock):
+        download_mock.return_value = [
+            "[UNK]",
+            "the",
+            "qu",
+            "##ick",
+            "br",
+            "##own",
+            "fox",
+        ]
+        input_data = ["the quick brown fox."]
+        tokenizer = WordPieceTokenizer(
+            lang="en", lowercase=True, dtype="string"
+        )
+        self.assertAllEqual(
+            tokenizer(input_data),
+            tf.ragged.constant(
+                [["the", "qu", "##ick", "br", "##own", "fox", "[UNK]"]]
+            ),
+        )
+        self.assertAllEqual(download_mock.call_count, 1)
+
+    @unittest.mock.patch("keras_nlp.tokenizers.word_piece_tokenizer.download")
+    def test_from_pretrained_supported_vocab(self, download_mock):
+        download_mock.return_value = ["[UNK]"]
+        for lang in random.sample(SUPPORTED_VOCAB, 5):
+            WordPieceTokenizer(lang=lang)
+            WordPieceTokenizer(lang=lang, lowercase=True)
+        self.assertAllEqual(download_mock.call_count, 10)
+
+    @unittest.mock.patch("keras_nlp.tokenizers.word_piece_tokenizer.download")
+    def test_from_pretrained_error(self, download_mock):
+        download_mock.return_value = []  # Should raise ValueError before this.
+        with self.assertRaisesRegex(
+            ValueError,
+            "The pre-trained vocabularies currently does not support "
+            "`strip_accents=True`.",
+        ):
+            WordPieceTokenizer(lang="en", strip_accents=True)
+        with self.assertRaisesRegex(
+            ValueError,
+            "Tokenizer requires either the `vocabulary` or `lang` "
+            "argument. Use `vocabulary` for custom vocabulary and `lang` "
+            "for pre-trained vocabulary.",
+        ):
+            WordPieceTokenizer()
+        with self.assertRaisesRegex(
+            ValueError,
+            "Tokenizer requires only one of `vocabulary` or `lang` "
+            "arguments. Use `vocabulary` for custom vocabulary and `lang` "
+            "for pre-trained vocabulary.",
+        ):
+            vocab_data = [
+                "[UNK]",
+                "the",
+                "qu",
+                "##ick",
+                "br",
+                "##own",
+                "fox",
+                ".",
+            ]
+            WordPieceTokenizer(vocabulary=vocab_data, lang="en")
+        with self.assertRaisesRegex(
+            ValueError,
+            "This language code is currently not supported. Received: "
+            f"`lang=zh`. Supported languages codes include "
+            f"{', '.join(SUPPORTED_VOCAB)}.",
+        ):
+            # Unsupported language.
+            WordPieceTokenizer(lang="zh")
+        with self.assertRaisesRegex(
+            ValueError,
+            "This suffix indicator is currently not supported in pre-trained "
+            'vocabularies. Use the default `suffix_indicator="##"` or '
+            "provide your own vocabulary. Received: "
+            "`suffix_indicator=@@.",
+        ):
+            WordPieceTokenizer(lang="en", suffix_indicator="@@")
 
     def test_config(self):
         input_data = ["quick brOWN whale"]
