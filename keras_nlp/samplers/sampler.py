@@ -48,6 +48,10 @@ call_args_docstring = """
 class Sampler:
     """Base sampler class.
 
+    Args:
+        token_ids_to_suppress: list, defaults to None. A list of token IDs which
+            will not be generated.
+
     Call Args:
         {{call_args}}
 
@@ -84,6 +88,24 @@ class Sampler:
     ```
     """
 
+    def __init__(self, token_ids_to_suppress=None):
+        self.token_ids_to_suppress = token_ids_to_suppress
+
+    def _suppress_token_ids(self, logits):
+        """Suppresses specified token IDs from being generated."""
+        vocabulary_size = tf.shape(logits)[-1]
+
+        # Build mask.
+        mask = tf.equal(
+            tf.expand_dims(tf.range(vocabulary_size), axis=0),
+            tf.expand_dims(self.token_ids_to_suppress, axis=1),
+        )
+        mask = tf.logical_not(tf.reduce_any(mask, axis=0))
+
+        # Set logits to -inf for masked tokens.
+        logits = tf.where(mask, logits, tf.fill(tf.shape(logits), -1e9))
+        return logits
+
     def __call__(
         self,
         next,
@@ -115,6 +137,11 @@ class Sampler:
         def body(prompt, cache, index):
             # Compute the softmax distribution for the next token.
             logits, _, cache = next(prompt, cache, index)
+
+            # Suppress specified token IDs from being generated.
+            if self.token_ids_to_suppress:
+                logits = self._suppress_token_ids(logits)
+
             probabilities = keras.activations.softmax(logits)
             # Compute the next token.
             next_token = self.get_next_token(probabilities)
