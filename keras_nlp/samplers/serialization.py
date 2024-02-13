@@ -14,6 +14,7 @@
 
 from keras_nlp.api_export import keras_nlp_export
 from keras_nlp.backend import keras
+from keras_nlp.samplers.sampler import Sampler
 from keras_nlp.samplers.beam_sampler import BeamSampler
 from keras_nlp.samplers.contrastive_sampler import ContrastiveSampler
 from keras_nlp.samplers.greedy_sampler import GreedySampler
@@ -88,7 +89,7 @@ def get(identifier):
                 f"identifier, but received: {identifier}."
             )
         return deserialize(identifier)
-    elif callable(identifier):
+    elif isinstance(identifier, Sampler):
         return identifier
     else:
         raise ValueError(
