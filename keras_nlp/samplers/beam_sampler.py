@@ -47,7 +47,7 @@ class BeamSampler(Sampler):
         data = tree.map_structure(self.create_beams, data)
         # Setup the initial beam log-likelihoods.
         log_probs = [[0.0] + [-1e9] * (self.num_beams - 1)]
-        log_probs = ops.array(log_probs)
+        log_probs = ops.array(log_probs, dtype="float32")
         log_probs = self.flatten_beams(ops.repeat(log_probs, batch_size, 0))
         return {**data, "log_probabilities": log_probs}
 

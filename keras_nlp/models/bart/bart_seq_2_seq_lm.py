@@ -257,7 +257,7 @@ class BartSeq2SeqLM(Seq2SeqLM):
     ):
         tokens = self.backbone.token_embedding(token_ids)
         positions = self.backbone.decoder_position_embedding(
-            tokens, start_index=index,
+            tokens, start_index=index
         )
         # Sum, normalize and apply dropout to embeddings.
         x = self.backbone.decoder_embeddings_add((tokens, positions))
