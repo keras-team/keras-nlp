@@ -141,6 +141,10 @@ class GPTNeoXCausalLMPreprocessor(GPTNeoXPreprocessor):
             token_ids = ops.convert_to_numpy(token_ids)
         if not isinstance(padding_mask, tf.Tensor):
             padding_mask = ops.convert_to_numpy(padding_mask)
+        # Make sure the numpy array has type `int32` since
+        # `SentencePieceProcessor.detokenize` only accepts `int32` arrays.
+        token_ids = tf.cast(token_ids, "int32")
+        padding_mask = tf.cast(padding_mask, "bool")
         # Strip any special tokens during detokenization (e.g. the start and
         # end markers). In the future we could make this configurable.
         padding_mask = padding_mask & (token_ids != self.tokenizer.end_token_id)

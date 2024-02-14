@@ -16,11 +16,8 @@ from keras_nlp.api_export import keras_nlp_export
 from keras_nlp.backend import ops
 from keras_nlp.backend import random
 from keras_nlp.samplers.sampler import Sampler
-from keras_nlp.samplers.sampler import call_args_docstring
-from keras_nlp.utils.python_utils import format_docstring
 
 
-@format_docstring(call_args=call_args_docstring)
 @keras_nlp_export("keras_nlp.samplers.TopKSampler")
 class TopKSampler(Sampler):
     """Top-K Sampler class.
@@ -32,31 +29,6 @@ class TopKSampler(Sampler):
     Args:
         k: int, the `k` value of top-k.
         seed: int. The random seed. Defaults to `None`.
-
-    Call arguments:
-        {{call_args}}
-
-    Examples:
-    ```python
-    # Use a simple alphabet of lowercase characters with ids in range [0, 25].
-    int_lookup = {i: chr(i + ord('a')) for i in range(26)}
-    char_lookup = {v: k for k, v in int_lookup.items()}
-    batch_size, length, vocab_size = 1, 12, len(int_lookup)
-
-    def next(prompt, cache, index):
-        hidden_states = np.ones((batch_size, 10))
-        # A uniform distribution over our alphabet.
-        logits = np.ones((batch_size, vocab_size))
-        return logits, hidden_states, cache
-
-    output = keras_nlp.samplers.TopKSampler(k=3)(
-        next=next,
-        prompt=np.full((batch_size, length,), char_lookup['z'], dtypes="int32"),
-        index=5,
-    )
-    print(["".join([int_lookup[i] for i in s]) for s in output.numpy()])
-    # >>> ['zzzzzacbbcaa']
-    ```
     """
 
     def __init__(

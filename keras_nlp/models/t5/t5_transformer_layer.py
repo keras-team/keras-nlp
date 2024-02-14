@@ -131,7 +131,7 @@ class T5TransformerLayer(keras.layers.Layer):
             shape = ops.shape(hidden_states)
             batch_size, length = shape[0], shape[1]
             causal_mask = compute_causal_mask(batch_size, length, length)
-            attention_mask = ops.cast(attention_mask, "int32")
+            attention_mask = ops.cast(attention_mask, "bool")
             attention_mask = causal_mask & attention_mask
 
         x = hidden_states  # Intermediate result.
