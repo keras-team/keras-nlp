@@ -18,6 +18,7 @@ import os
 from typing import List
 
 import tensorflow as tf
+import keras
 
 from keras_nlp.api_export import keras_nlp_export
 from keras_nlp.tokenizers import tokenizer
@@ -259,6 +260,11 @@ class SentencePieceTokenizer(tokenizer.Tokenizer):
         if unbatched:
             outputs = tf.squeeze(outputs, 0)
         return outputs
+
+    def compute_output_spec(self, input_spec) -> keras.KerasTensor:
+        return keras.KerasTensor(input_spec.shape + (self.sequence_length,),
+                                 dtype=self.compute_dtype,
+                                 sparse=not self.sequence_length)
 
     @classproperty
     def presets(cls):
