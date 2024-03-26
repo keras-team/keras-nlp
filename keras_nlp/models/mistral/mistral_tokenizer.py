@@ -64,7 +64,11 @@ class MistralTokenizer(SentencePieceTokenizer):
     def __init__(self, proto, **kwargs):
         self.start_token = "<s>"
         self.end_token = "</s>"
-        super().__init__(proto=proto, **kwargs)
+        super().__init__(
+            proto=proto,
+            special_tokens=[self.start_token, self.end_token],
+            **kwargs,
+        )
 
     def set_proto(self, proto):
         super().set_proto(proto)
@@ -85,3 +89,11 @@ class MistralTokenizer(SentencePieceTokenizer):
     @classproperty
     def presets(cls):
         return copy.deepcopy(backbone_presets)
+
+    def get_config(self):
+        config = super().get_config()
+        # In the constructor, we pass the list of special tokens to the
+        # `special_tokens` arg of the superclass' constructor. Hence, we
+        # delete it from the config here.
+        del config["special_tokens"]
+        return config

@@ -15,6 +15,7 @@
 import base64
 import binascii
 import os
+import re
 from typing import List
 
 import tensorflow as tf
@@ -38,6 +39,12 @@ except ImportError:
 
 
 VOCAB_FILENAME = "vocabulary.spm"
+
+
+def get_special_tokens_pattern(special_tokens):
+    if special_tokens is None or len(special_tokens) == 0:
+        return None
+    return r"|".join([re.escape(token) for token in special_tokens])
 
 
 @keras_nlp_export("keras_nlp.tokenizers.SentencePieceTokenizer")
@@ -64,6 +71,11 @@ class SentencePieceTokenizer(tokenizer.Tokenizer):
             for more details on the format.
         sequence_length: If set, the output will be converted to a dense
             tensor and padded/trimmed so all outputs are of `sequence_length`.
+        special_tokens: list. A list of special tokens strings. Special tokens
+            must be included in the vocabulary of `proto` and passed through
+            `special_tokens` argument. This will help to map the special tokens
+            to their unique indecies. If `special_tokens` isn't passed, special
+            tokens will be mapped to out of vocabulary (OOV) token.
 
     References:
         - [Kudo and Richardson, 2018](https://arxiv.org/abs/1808.06226)
@@ -112,6 +124,7 @@ class SentencePieceTokenizer(tokenizer.Tokenizer):
         self,
         proto=None,
         sequence_length: int = None,
+        special_tokens=None,
         dtype="int32",
         **kwargs,
     ) -> None:
@@ -127,6 +140,10 @@ class SentencePieceTokenizer(tokenizer.Tokenizer):
 
         self.proto = None
         self.sequence_length = sequence_length
+        self.special_tokens = special_tokens
+        self._special_tokens_pattern = get_special_tokens_pattern(
+            special_tokens
+        )
         self.set_proto(proto)
 
     def save_assets(self, dir_path):
@@ -210,6 +227,7 @@ class SentencePieceTokenizer(tokenizer.Tokenizer):
             {
                 "proto": None,  # Save vocabulary via an asset!
                 "sequence_length": self.sequence_length,
+                "special_tokens": self.special_tokens,
             }
         )
         return config
@@ -220,6 +238,36 @@ class SentencePieceTokenizer(tokenizer.Tokenizer):
                 "No vocabulary has been set for SentencePieceTokenizer. Make "
                 "sure to pass a `proto` argument when creating the layer."
             )
+
+    def _replace_token_id(self, tokens, mask, new_token):
+        return tf.where(
+            mask[..., tf.newaxis],
+            new_token,
+            tokens,
+        )
+
+    def _tokenize_with_special_tokens(self, inputs):
+        splitted_inputs = tf_text.regex_split(
+            inputs,
+            self._special_tokens_pattern,
+            self._special_tokens_pattern,
+        )
+
+        tokens = self._sentence_piece.tokenize(splitted_inputs)
+
+        for special_token in self.special_tokens:
+            special_token_mask = tf.equal(splitted_inputs, special_token)
+            tokens = tf.where(
+                special_token_mask[..., tf.newaxis],
+                (
+                    self._sentence_piece.string_to_id(special_token)
+                    if is_int_dtype(self.compute_dtype)
+                    else special_token
+                ),
+                tokens,
+            )
+
+        return tokens.merge_dims(-2, -1)
 
     def tokenize(self, inputs):
         self._check_vocabulary()
@@ -235,7 +283,10 @@ class SentencePieceTokenizer(tokenizer.Tokenizer):
                 "sure to pass a `vocabulary` argument when creating the layer."
             )
 
-        tokens = self._sentence_piece.tokenize(inputs)
+        if self._special_tokens_pattern is not None:
+            tokens = self._tokenize_with_special_tokens(inputs)
+        else:
+            tokens = self._sentence_piece.tokenize(inputs)
 
         # Convert to a dense output if `sequence_length` is set.
         if self.sequence_length:
