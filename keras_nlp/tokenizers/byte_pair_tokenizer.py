@@ -24,6 +24,7 @@ import os
 from typing import Iterable
 from typing import List
 
+import keras
 import regex as re
 import tensorflow as tf
 
@@ -608,6 +609,13 @@ class BytePairTokenizer(tokenizer.Tokenizer):
         if unbatched:
             outputs = tf.squeeze(outputs, 0)
         return outputs
+
+    def compute_output_spec(self, input_spec):
+        return keras.Input(
+            input_spec.shape + (self.sequence_length,),
+            dtype=self.compute_dtype,
+            sparse=not self.sequence_length,
+        )
 
     def _transform_bytes(self, tokens):
         """Map token bytes to unicode using `byte2unicode`."""
