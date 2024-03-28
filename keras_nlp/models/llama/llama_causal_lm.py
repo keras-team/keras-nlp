@@ -1,4 +1,4 @@
-# Copyright 2022 The KerasNLP Authors
+# Copyright 2023 The KerasNLP Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,31 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import copy
 
 from keras_nlp.api_export import keras_nlp_export
 from keras_nlp.backend import keras
 from keras_nlp.backend import ops
 from keras_nlp.models.generative_task import GenerativeTask
-from keras_nlp.models.gpt2.gpt2_backbone import GPT2Backbone
-from keras_nlp.models.gpt2.gpt2_causal_lm_preprocessor import (
-    GPT2CausalLMPreprocessor,
+from keras_nlp.models.llama.llama_backbone import LlamaBackbone
+from keras_nlp.models.llama.llama_causal_lm_preprocessor import (
+    LlamaCausalLMPreprocessor,
 )
-from keras_nlp.models.gpt2.gpt2_presets import backbone_presets
+from keras_nlp.models.llama.llama_presets import backbone_presets
 from keras_nlp.utils.python_utils import classproperty
 from keras_nlp.utils.tensor_utils import any_equal
 
 
-@keras_nlp_export("keras_nlp.models.GPT2CausalLM")
-class GPT2CausalLM(GenerativeTask):
-    """An end-to-end GPT2 model for causal language modeling.
+@keras_nlp_export("keras_nlp.models.LlamaCausalLM")
+class LlamaCausalLM(GenerativeTask):
+    """An end-to-end Llama model for causal language modeling.
 
     A causal language model (LM) predicts the next token based on previous
     tokens. This task setup can be used to train the model unsupervised on
     plain text input, or to autoregressively generate plain text similar to
     the data used for training. This task can be used for pre-training or
-    fine-tuning a GPT-2 model, simply by calling `fit()`.
+    fine-tuning a LLaMA model, simply by calling `fit()`.
 
     This model has a `generate()` method, which generates text based on a
     prompt. The generation strategy used is controlled by an additional
@@ -43,125 +42,20 @@ class GPT2CausalLM(GenerativeTask):
     different `keras_nlp.samplers` objects to control the generation. By
     default, `"top_k"` sampling will be used.
 
-    This model can optionally be configured with a `preprocessor` layer, in
-    which case it will automatically apply preprocessing to string inputs during
-    `fit()`, `predict()`, `evaluate()` and `generate()`. This is done by default
-    when creating the model with `from_preset()`.
-
-    Disclaimer: Pre-trained models are provided on an "as is" basis, without
-    warranties or conditions of any kind. The underlying model is provided by a
-    third party and subject to a separate license, available
-    [here](https://github.com/openai/gpt-2).
-
     Args:
-        backbone: A `keras_nlp.models.GPT2Backbone` instance.
-        preprocessor: A `keras_nlp.models.GPT2CausalLMPreprocessor` or `None`.
+        backbone: A `keras_nlp.models.LlamaBackbone` instance.
+        preprocessor: A `keras_nlp.models.LlamaCausalLMPreprocessor` or `None`.
             If `None`, this model will not apply preprocessing, and inputs
             should be preprocessed before calling the model.
-
-    Examples:
-
-    Use `generate()` to do text generation.
-    ```python
-    gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset("gpt2_base_en")
-    gpt2_lm.generate("I want to say", max_length=30)
-
-    # Generate with batched prompts.
-    gpt2_lm.generate(["This is a", "Where are you"], max_length=30)
-    ```
-
-    Compile the `generate()` function with a custom sampler.
-    ```python
-    gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset("gpt2_base_en")
-    gpt2_lm.compile(sampler="greedy")
-    gpt2_lm.generate("I want to say", max_length=30)
-
-    gpt2_lm.compile(sampler=keras_nlp.samplers.BeamSampler(num_beams=2))
-    gpt2_lm.generate("I want to say", max_length=30)
-    ```
-
-    Use `generate()` without preprocessing.
-    ```python
-    # Prompt the model with `5338, 318` (the token ids for `"Who is"`).
-    # Use `"padding_mask"` to indicate values that should not be overridden.
-    prompt = {
-        "token_ids": np.array([[5338, 318, 0, 0, 0]] * 2),
-        "padding_mask": np.array([[1, 1, 0, 0, 0]] * 2),
-    }
-
-    gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset(
-        "gpt2_base_en",
-        preprocessor=None,
-    )
-    gpt2_lm.generate(prompt)
-    ```
-
-    Call `fit()` on a single batch.
-    ```python
-    features = ["The quick brown fox jumped.", "I forgot my homework."]
-    gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset("gpt2_base_en")
-    gpt2_lm.fit(x=features, batch_size=2)
-    ```
-
-    Call `fit()` without preprocessing.
-    ```python
-    x = {
-        "token_ids": np.array([[50256, 1, 2, 3, 4]] * 2),
-        "padding_mask": np.array([[1, 1, 1, 1, 1]] * 2),
-    }
-    y = np.array([[1, 2, 3, 4, 50256]] * 2)
-    sw = np.array([[1, 1, 1, 1, 1]] * 2)
-
-    gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset(
-        "gpt2_base_en",
-        preprocessor=None,
-    )
-    gpt2_lm.fit(x=x, y=y, sample_weight=sw, batch_size=2)
-    ```
-
-    Custom backbone and vocabulary.
-    ```python
-    features = ["a quick fox.", "a fox quick."]
-    vocab = {"<|endoftext|>": 0, "a": 4, "Ġquick": 5, "Ġfox": 6}
-    merges = ["Ġ q", "u i", "c k", "ui ck", "Ġq uick"]
-    merges += ["Ġ f", "o x", "Ġf ox"]
-
-    tokenizer = keras_nlp.models.GPT2Tokenizer(
-        vocabulary=vocab,
-        merges=merges,
-    )
-    preprocessor = keras_nlp.models.GPT2CausalLMPreprocessor(
-        tokenizer=tokenizer,
-        sequence_length=128,
-    )
-    backbone = keras_nlp.models.GPT2Backbone(
-        vocabulary_size=30552,
-        num_layers=4,
-        num_heads=4,
-        hidden_dim=256,
-        intermediate_dim=512,
-        max_sequence_length=128,
-    )
-    gpt2_lm = keras_nlp.models.GPT2CausalLM(
-        backbone=backbone,
-        preprocessor=preprocessor,
-    )
-    gpt2_lm.fit(x=features, batch_size=2)
-    ```
     """
 
-    def __init__(
-        self,
-        backbone,
-        preprocessor=None,
-        **kwargs,
-    ):
+    def __init__(self, backbone, preprocessor=None, **kwargs):
         # === Layers ===
         self.backbone = backbone
         self.preprocessor = preprocessor
 
         # === Functional Model ===
-        inputs = backbone.input
+        inputs = backbone.inputs
         hidden_states = backbone(inputs)
         outputs = backbone.token_embedding(hidden_states, reverse=True)
         super().__init__(
@@ -179,16 +73,12 @@ class GPT2CausalLM(GenerativeTask):
         )
 
     @classproperty
-    def presets(cls):
-        return copy.deepcopy(backbone_presets)
-
-    @classproperty
     def backbone_cls(cls):
-        return GPT2Backbone
+        return LlamaBackbone
 
     @classproperty
     def preprocessor_cls(cls):
-        return GPT2CausalLMPreprocessor
+        return LlamaCausalLMPreprocessor
 
     def call_with_cache(
         self,
@@ -196,7 +86,7 @@ class GPT2CausalLM(GenerativeTask):
         cache,
         cache_update_index,
     ):
-        """Forward pass of `GPT2CausalLM` with cache.
+        """Forward pass of `LlamaCausalLM` with cache.
 
         `call_with_cache` adds an additional forward pass for the model for
         autoregressive inference. Unlike calling the model directly, this method
@@ -206,8 +96,8 @@ class GPT2CausalLM(GenerativeTask):
         Args:
             token_ids: a dense int Tensor with shape `(batch_size, max_length)`.
             cache: a dense float Tensor, the cache of key and value.
-            cache_update_index: int, or int Tensor. The index of current inputs in the
-                whole sequence.
+            cache_update_index: int, or int Tensor. The index of current inputs
+            in the whole sequence.
 
         Returns:
             A (logits, hidden_states, cache) tuple. Where `logits` is the
@@ -215,23 +105,18 @@ class GPT2CausalLM(GenerativeTask):
             the final hidden representation of the input tokens, and `cache` is
             the decoding cache.
         """
-        tokens = self.backbone.token_embedding(token_ids)
-        positions = self.backbone.position_embedding(
-            tokens, start_index=cache_update_index
-        )
-        x = self.backbone.embeddings_add((tokens, positions))
-        x = self.backbone.embeddings_dropout(x)
+        x = self.backbone.token_embedding(token_ids)
         # Each decoder layer has a cache; we update them separately.
-        caches = []
-        for i, transformer_layer in enumerate(self.backbone.transformer_layers):
+        updated_cache = []
+        for i in range(self.backbone.num_layers):
             current_cache = cache[:, i, ...]
-            x, next_cache = transformer_layer(
+            x, next_cache = self.backbone.transformer_layers[i](
                 x,
                 self_attention_cache=current_cache,
                 self_attention_cache_update_index=cache_update_index,
             )
-            caches.append(next_cache)
-        cache = ops.stack(caches, axis=1)
+            updated_cache.append(next_cache)
+        cache = ops.stack(updated_cache, axis=1)
         hidden_states = x = self.backbone.layer_norm(x)
         logits = self.backbone.token_embedding(x, reverse=True)
         return logits, hidden_states, cache
@@ -241,9 +126,16 @@ class GPT2CausalLM(GenerativeTask):
         batch_size = ops.shape(token_ids)[0]
         max_length = ops.shape(token_ids)[1]
         num_layers = self.backbone.num_layers
-        num_heads = self.backbone.num_heads
-        head_dim = self.backbone.hidden_dim // self.backbone.num_heads
-        shape = [batch_size, num_layers, 2, max_length, num_heads, head_dim]
+        num_key_value_heads = self.backbone.num_key_value_heads
+        head_dim = self.backbone.hidden_dim // self.backbone.num_query_heads
+        shape = [
+            batch_size,
+            num_layers,
+            2,
+            max_length,
+            num_key_value_heads,
+            head_dim,
+        ]
         cache = ops.zeros(shape, dtype=self.compute_dtype)
         # Seed the cache.
         _, hidden_states, cache = self.call_with_cache(token_ids, cache, 0)
@@ -263,7 +155,7 @@ class GPT2CausalLM(GenerativeTask):
         Args:
             inputs: A dictionary with two keys `"token_ids"` and
                 `"padding_mask"` and batched tensor values.
-            stop_token_ids: List of id's of end token's to stop on. If all
+            stop_token_ids: Tuple of id's of the end token to stop on. If all
                 sequences have produced a new stop token, generation
                 will stop.
         """
@@ -304,12 +196,12 @@ class GPT2CausalLM(GenerativeTask):
 
         # Compute an output padding mask with the token ids we updated.
         if stop_token_ids is not None:
-            # Build a mask of stop tokens locations not in the original
+            # Build a mask of stop token locations not in the original
             # prompt (not in locations where `padding_mask` is True).
-            end_locations = any_equal(
-                token_ids, stop_token_ids, ops.logical_not(padding_mask)
+            end_locations = ops.logical_and(
+                any_equal(token_ids, stop_token_ids),
+                ops.logical_not(padding_mask),
             )
-
             end_locations = ops.cast(end_locations, "int32")
             # Use cumsum to get ones in all locations after end_locations.
             cumsum = ops.cast(ops.cumsum(end_locations, axis=-1), "int32")
@@ -323,3 +215,7 @@ class GPT2CausalLM(GenerativeTask):
             "token_ids": token_ids,
             "padding_mask": padding_mask,
         }
+
+    @classproperty
+    def presets(cls):
+        return copy.deepcopy(backbone_presets)

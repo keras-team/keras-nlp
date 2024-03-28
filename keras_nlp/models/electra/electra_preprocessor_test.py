@@ -12,40 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 import pytest
 
-from keras_nlp.models.llama.llama_preprocessor import LlamaPreprocessor
-from keras_nlp.models.llama.llama_tokenizer import LlamaTokenizer
+from keras_nlp.models.electra.electra_preprocessor import ElectraPreprocessor
+from keras_nlp.models.electra.electra_tokenizer import ElectraTokenizer
 from keras_nlp.tests.test_case import TestCase
 
 
-class LlamaPreprocessorTest(TestCase):
+class ElectraPreprocessorTest(TestCase):
     def setUp(self):
-        self.tokenizer = LlamaTokenizer(
-            # Generated using create_llama_test_proto.py
-            proto=os.path.join(self.get_test_data_dir(), "llama_test_vocab.spm")
-        )
+        self.vocab = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"]
+        self.vocab += ["THE", "QUICK", "BROWN", "FOX"]
+        self.vocab += ["the", "quick", "brown", "fox"]
+        self.tokenizer = ElectraTokenizer(vocabulary=self.vocab)
         self.init_kwargs = {
             "tokenizer": self.tokenizer,
             "sequence_length": 8,
         }
         self.input_data = (
-            ["the quick brown fox"],
+            ["THE QUICK BROWN FOX."],
             [1],  # Pass through labels.
             [1.0],  # Pass through sample_weights.
         )
 
     def test_preprocessor_basics(self):
-        self.run_preprocessor_test(
-            cls=LlamaPreprocessor,
+        self.run_preprocessing_layer_test(
+            cls=ElectraPreprocessor,
             init_kwargs=self.init_kwargs,
             input_data=self.input_data,
             expected_output=(
                 {
-                    "token_ids": [[1, 3, 8, 4, 6, 0, 0, 0]],
-                    "padding_mask": [[1, 1, 1, 1, 1, 0, 0, 0]],
+                    "token_ids": [[2, 5, 6, 7, 8, 1, 3, 0]],
+                    "segment_ids": [[0, 0, 0, 0, 0, 0, 0, 0]],
+                    "padding_mask": [[1, 1, 1, 1, 1, 1, 1, 0]],
                 },
                 [1],  # Pass through labels.
                 [1.0],  # Pass through sample_weights.
@@ -53,16 +52,16 @@ class LlamaPreprocessorTest(TestCase):
         )
 
     def test_errors_for_2d_list_input(self):
-        preprocessor = LlamaPreprocessor(**self.init_kwargs)
+        preprocessor = ElectraPreprocessor(**self.init_kwargs)
         ambiguous_input = [["one", "two"], ["three", "four"]]
         with self.assertRaises(ValueError):
             preprocessor(ambiguous_input)
 
     @pytest.mark.extra_large
     def test_all_presets(self):
-        for preset in LlamaPreprocessor.presets:
+        for preset in ElectraPreprocessor.presets:
             self.run_preset_test(
-                cls=LlamaPreprocessor,
+                cls=ElectraPreprocessor,
                 preset=preset,
                 input_data=self.input_data,
             )
