@@ -252,6 +252,7 @@ class BartSeq2SeqLMPreprocessor(BartPreprocessor):
         )
         decoder_token_ids = ops.convert_to_numpy(decoder_token_ids)
         decoder_padding_mask = ops.convert_to_numpy(decoder_padding_mask)
+        decoder_padding_mask = tf.cast(decoder_padding_mask, "bool")
         # Strip any special tokens during detokenization, i.e., the start and
         # end markers. In the future, we could make this configurable.
         decoder_padding_mask = (

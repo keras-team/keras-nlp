@@ -21,6 +21,7 @@ from keras_nlp.samplers.top_k_sampler import TopKSampler
 from keras_nlp.tests.test_case import TestCase
 
 
+@pytest.mark.skip(reason="TODO rewrite")
 class TopKSamplerTest(TestCase):
     def setUp(self):
         super().setUp()

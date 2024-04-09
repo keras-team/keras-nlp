@@ -254,5 +254,4 @@ class BartBackbone(Backbone):
                 "max_sequence_length": self.max_sequence_length,
             }
         )
-
         return config
