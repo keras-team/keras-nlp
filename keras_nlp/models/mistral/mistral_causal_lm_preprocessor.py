@@ -175,12 +175,12 @@ class MistralCausalLMPreprocessor(MistralPreprocessor):
         # Convert the inputs to numpy arrays if they aren't a tensor already.
         if not isinstance(token_ids, tf.Tensor):
             token_ids = ops.convert_to_numpy(token_ids)
-            # Make sure the numpy array has type `int32` since
-            # `SentencePieceProcessor.detokenize` only accepts `int32` arrays.
-            token_ids = token_ids.astype("int32")
         if not isinstance(padding_mask, tf.Tensor):
             padding_mask = ops.convert_to_numpy(padding_mask)
-            padding_mask = padding_mask.astype("bool")
+        # Make sure the numpy array has type `int32` since
+        # `SentencePieceProcessor.detokenize` only accepts `int32` arrays.
+        token_ids = tf.cast(token_ids, "int32")
+        padding_mask = tf.cast(padding_mask, "bool")
         # Strip any special tokens during detokenization (e.g. the start and
         # end markers). In the future we could make this configurable.
         padding_mask = padding_mask & (token_ids != self.tokenizer.end_token_id)
