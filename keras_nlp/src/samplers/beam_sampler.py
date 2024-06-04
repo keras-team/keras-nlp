@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    import tensorflow as tf
-except ImportError:
-    raise ImportError(
-        "To use `keras_nlp`, please install Tensorflow: `pip install tensorflow`. "
-        "The TensorFlow package is required for data preprocessing with any backend."
-    )
+
 import tree
 
 from keras_nlp.src.api_export import keras_nlp_export
+from keras_nlp.src.backend import config
 from keras_nlp.src.backend import ops
 from keras_nlp.src.samplers.sampler import Sampler
 from keras_nlp.src.utils.tensor_utils import any_equal
@@ -142,8 +137,10 @@ class BeamSampler(Sampler):
             next_token = flatten_beams(indices % vocab_size)
             # We need `ensure_shape` as `top_k` will change the static shape.
             next_log_probs = flatten_beams(next_log_probs)
-            # Work around for top_k output shape on tf backend.
-            if isinstance(log_probs, tf.Tensor):
+            if config.backend() == "tensorflow":
+                # Work around for bug in top_k output shape on tf backend.
+                import tensorflow as tf
+
                 log_probs = tf.ensure_shape(next_log_probs, log_probs.shape)
             else:
                 log_probs = next_log_probs

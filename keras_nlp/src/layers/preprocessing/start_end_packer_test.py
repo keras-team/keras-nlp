@@ -14,14 +14,7 @@
 
 import keras
 import pytest
-
-try:
-    import tensorflow as tf
-except ImportError:
-    raise ImportError(
-        "To use `keras_nlp`, please install Tensorflow: `pip install tensorflow`. "
-        "The TensorFlow package is required for data preprocessing with any backend."
-    )
+import tensorflow as tf
 
 from keras_nlp.src.layers.preprocessing.start_end_packer import StartEndPacker
 from keras_nlp.src.tests.test_case import TestCase

@@ -12,21 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    import tensorflow as tf
-except ImportError:
-    raise ImportError(
-        "To use `keras_nlp`, please install Tensorflow: `pip install tensorflow`. "
-        "The TensorFlow package is required for data preprocessing with any backend."
-    )
-
 from keras_nlp.src.backend import config
 from keras_nlp.src.backend import keras
 from keras_nlp.src.backend import ops
 
 try:
+    import tensorflow as tf
     import tensorflow_text as tf_text
 except ImportError:
+    tf = None
     tf_text = None
 
 
@@ -140,11 +134,31 @@ def truncate_at_token(inputs, token, mask):
     return tf.RaggedTensor.from_tensor(inputs, end_indices)
 
 
-def assert_tf_text_installed(symbol_name):
-    if tf_text is None:
+def strip_to_ragged(token_ids, mask, ids_to_strip):
+    """Remove masked and special tokens from a sequence before detokenizing."""
+    token_ids = ops.convert_to_numpy(token_ids)
+    token_ids = token_ids.astype("int32")
+    mask = ops.convert_to_numpy(mask)
+    mask = mask.astype("bool")
+    for id in ids_to_strip:
+        mask = mask & (token_ids != id)
+    return tf.ragged.boolean_mask(token_ids, mask)
+
+
+def assert_tf_libs_installed(symbol_name):
+    if tf_text is None or tf is None:
         raise ImportError(
-            f"{symbol_name} requires the `tensorflow-text` package. "
-            "Please install with `pip install tensorflow-text`."
+            f"{symbol_name} requires `tensorflow` and `tensorflow-text` for "
+            "text processing. Run `pip install tensorflow-text` to install "
+            "both packages or visit https://www.tensorflow.org/install\n\n"
+            "If tensorflow-text is already installed, please try importing it "
+            "in a clean python session. Your installation may have errors.\n\n"
+            "KerasNLP uses tensorflow-text to preprocessing data efficiently "
+            "on all Keras backends. Some layers and backbones can be used "
+            "without tensorflow-text, but any workflows involing string input "
+            "or output will require tensorflow to be installed. If you are "
+            "running on Jax or Torch, this installation does not need GPU "
+            "support."
         )
 
 
