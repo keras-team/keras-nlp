@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from keras_nlp.src.models.text_detection.diffbin.diffbin import DiffBin
+from keras_nlp.src.models.ocr.diffbin.diffbin import DiffBin

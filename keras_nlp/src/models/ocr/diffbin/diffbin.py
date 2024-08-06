@@ -19,13 +19,13 @@ from keras_nlp.src.api_export import keras_nlp_export
 from keras_nlp.src.backend import keras
 from keras_nlp.src.models import utils
 from keras_nlp.src.models.backbones.backbone_presets import backbone_presets
-from keras_nlp.src.models.text_detection.diffbin.diffbin_presets import (
+from keras_nlp.src.models.ocr.diffbin.diffbin_presets import (
     basnet_presets,
 )
-from keras_nlp.src.models.text_detection.diffbin.diffbin_presets import (
+from keras_nlp.src.models.ocr.diffbin.diffbin_presets import (
     presets_no_weights,
 )
-from keras_nlp.src.models.text_detection.diffbin.diffbin_presets import (
+from keras_nlp.src.models.ocr.diffbin.diffbin_presets import (
     presets_with_weights,
 )
 from keras_nlp.src.models.task import Task
@@ -35,7 +35,7 @@ from keras_nlp.src.utils.python_utils import classproperty
 @keras_nlp_export(
     [
         "keras_nlp.models.DiffBin",
-        "keras_nlp.models.text_detection.DiffBin",
+        "keras_nlp.models.ocr.DiffBin",
     ]
 )
 class DiffBin(Task):
