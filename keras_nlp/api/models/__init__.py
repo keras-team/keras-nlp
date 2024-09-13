@@ -100,6 +100,7 @@ from keras_nlp.src.models.densenet.densenet_backbone import DenseNetBackbone
 from keras_nlp.src.models.densenet.densenet_image_classifier import (
     DenseNetImageClassifier,
 )
+from keras_nlp.src.models.diffbin.diffbin import DifferentialBinarization
 from keras_nlp.src.models.distil_bert.distil_bert_backbone import (
     DistilBertBackbone,
 )
