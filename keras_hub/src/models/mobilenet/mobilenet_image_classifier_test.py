@@ -72,6 +72,18 @@ class MobileNetImageClassifierTest(TestCase):
         )
 
     @pytest.mark.large
+    def test_smallest_preset(self):
+        # Test that our forward pass is stable!
+        image_batch = self.load_test_image()[None, ...] / 255.0
+        self.run_preset_test(
+            cls=MobileNetImageClassifier,
+            preset="mobilenetv3_small_050",
+            input_data=image_batch,
+            expected_output_shape=(1, 1000),
+            expected_labels=[85],
+        )
+
+    @pytest.mark.large
     def test_saved_model(self):
         self.run_model_saving_test(
             cls=MobileNetImageClassifier,

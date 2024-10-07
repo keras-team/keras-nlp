@@ -119,7 +119,7 @@ class MobileNetBackbone(Backbone):
         depthwise_filters,
         last_layer_filter,
         squeeze_and_excite=None,
-        image_shape=(224, 224, 3),
+        image_shape=(None, None, 3),
         input_activation="hard_swish",
         output_activation="hard_swish",
         input_num_filters=16,
