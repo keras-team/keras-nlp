@@ -43,6 +43,9 @@ from keras_hub.src.models.densenet.densenet_image_converter import (
 from keras_hub.src.models.mix_transformer.mix_transformer_image_converter import (
     MiTImageConverter,
 )
+from keras_hub.src.models.mobilenet.mobilenet_image_converter import (
+    MobileNetImageConverter,
+)
 from keras_hub.src.models.pali_gemma.pali_gemma_image_converter import (
     PaliGemmaImageConverter,
 )
