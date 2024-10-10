@@ -32,8 +32,8 @@ class MobileNetImageClassifierTest(TestCase):
             stackwise_se_ratio=[
                 [None, None],
                 [0.25, 0.25, 0.25],
-                [0.3, 0.3],
-                [0.3, 0.25, 0.25],
+                [0.25, 0.25],
+                [0.25, 0.25, 0.25],
             ],
             stackwise_activation=[
                 ["relu", "relu"],
@@ -41,6 +41,7 @@ class MobileNetImageClassifierTest(TestCase):
                 ["hard_swish", "hard_swish"],
                 ["hard_swish", "hard_swish", "hard_swish"],
             ],
+            stackwise_padding=[[1, 1], [2, 2, 2], [2, 2], [2, 2, 2], [1]],
             output_num_filters=1024,
             input_activation="hard_swish",
             output_activation="hard_swish",
